@@ -1,0 +1,34 @@
+{
+  "name": "multi-source-threat-intelligence-app",
+  "version": "2.1.0",
+  "description": "Multi-source threat intelligence monitoring application with automated MISP integration and on-demand scanning.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node --expose-gc app.js",
+    "dev": "nodemon --expose-gc app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "threat-intelligence",
+    "misp",
+    "security",
+    "monitoring",
+    "nodejs"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.5.0",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "node-cron": "^3.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
