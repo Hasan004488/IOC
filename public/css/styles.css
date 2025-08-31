@@ -1,21 +1,77 @@
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f8f9fa;
 }
 
-.card-header h5 {
-    font-size: 1.1rem;
+/* --- Hero Search Section (index.ejs) --- */
+.hero-search {
+    height: 100vh;
+    background-color: #e9ecef;
+    padding: 2rem;
+    transition: all 0.5s ease-in-out;
 }
 
-pre {
-    max-height: 300px;
-    overflow-y: auto;
-    font-size: 0.8rem;
+.hero-search.active {
+    height: 50vh;
 }
 
-.table {
-    margin-bottom: 0;
+.hero-search .form-control {
+    border-right: 0;
+}
+.hero-search .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
-.card-footer {
-    background-color: rgba(0,0,0,.03);
+.summary-stats p {
+    font-size: 0.9rem;
+    color: #6c757d;
+    display: inline-block;
+}
+
+/* --- Result Section (index.ejs) --- */
+.result-container {
+    margin-top: -80px; /* Pulls the result card up into the hero section */
+    position: relative;
+    z-index: 10;
+}
+
+.result-card {
+    border: none;
+    border-radius: 0.75rem;
+}
+
+.misp-attribute-card {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+}
+.misp-attribute-card p {
+    margin-bottom: 0.5rem;
+}
+
+/* --- Dashboard Section (dashboard.ejs) --- */
+.dashboard-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,.05);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+    padding: 1rem 1.25rem;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    border-bottom-width: 1px;
 }

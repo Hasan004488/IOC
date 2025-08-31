@@ -1,19 +1,12 @@
 const express = require("express");
 const path = require("path");
+const fs = require('fs');
 const mongoose = require("mongoose");
 const readline = require("readline");
-const { spawn } = require("child_process");
 const cron = require("node-cron");
 const axios = require('axios');
 require('dotenv').config();
 
-// --- Database Models ---
-// Note: We define schemas dynamically, so we don't import the models directly here.
-
-/**
- * Enhanced Multi-Source Threat Intelligence Monitoring Application
- * Handles IP, SHA256, MD5, Hostname, and Domain indicators
- */
 class ThreatIntelligenceApp {
   constructor() {
     this.expressApp = express();
@@ -21,27 +14,52 @@ class ThreatIntelligenceApp {
     this.expressApp.use(express.urlencoded({ extended: true, limit: "50mb" }));
     this.expressApp.use(express.static(path.join(__dirname, "public")));
 
-
-    // Data source configurations
-    this.dataSources = [
-      { type: 'ip', url: process.env.IP_FETCH_URL, dbName: 'ipMonitoringDB', chunkSize: 15000, batchSize: 500, validator: this.isValidIP.bind(this) },
-      { type: 'sha256', url: process.env.SHA256_FETCH_URL, dbName: 'sha256MonitoringDB', chunkSize: 15000, batchSize: 500, validator: this.isValidSHA256.bind(this) },
-      { type: 'md5', url: process.env.MD5_FETCH_URL, dbName: 'md5MonitoringDB', chunkSize: 15000, batchSize: 500, validator: this.isValidMD5.bind(this) },
-      { type: 'hostname', url: process.env.HOSTNAME_FETCH_URL, dbName: 'hostnameMonitoringDB', chunkSize: 15000, batchSize: 500, validator: this.isValidHostname.bind(this) },
-      { type: 'domain', url: process.env.DOMAIN_FETCH_URL, dbName: 'domainMonitoringDB', chunkSize: 15000, batchSize: 500, validator: this.isValidDomain.bind(this) }
+   this.dataSources = [
+      {
+        type: "ip",
+        url: process.env.IP_FETCH_URL,
+        dbName: "dw_ioc_ip",
+        chunkSize: 15000,
+        validator: this.isValidIP.bind(this),
+      },
+      {
+        type: "sha256",
+        url: process.env.SHA256_FETCH_URL,
+        dbName: "dw_ioc_sha256",
+        chunkSize: 15000,
+        validator: this.isValidSHA256.bind(this),
+      },
+      {
+        type: "md5",
+        url: process.env.MD5_FETCH_URL,
+        dbName: "dw_ioc_md5",
+        chunkSize: 15000,
+        validator: this.isValidMD5.bind(this),
+      },
+      {
+        type: "hostname",
+        url: process.env.HOSTNAME_FETCH_URL,
+        dbName: "dw_ioc_hostname",
+        chunkSize: 15000,
+        validator: this.isValidHostname.bind(this),
+      },
+      {
+        type: "domain",
+        url: process.env.DOMAIN_FETCH_URL,
+        dbName: "dw_ioc_domain",
+        chunkSize: 15000,
+        validator: this.isValidDomain.bind(this),
+      },
     ];
 
     this.isProcessing = false;
-    this.connections = new Map(); // Store database connections
-    this.processingStats = {
-        lastRun: null,
-        details: {} // Will store stats per type
-    };
+    this.connections = new Map();
+    this.processingStats = { lastRun: null, details: {} };
   }
 
   async initialize() {
     try {
-      console.log("🚀 Initializing Multi-Source Threat Intelligence Application...");
+      console.log("🚀 Initializing Application...");
       await this.initializeDatabaseConnections();
       this.setupExpress();
       await this.showInitialStats();
@@ -49,8 +67,7 @@ class ThreatIntelligenceApp {
       this.setupCLI();
       this.setupGracefulShutdown();
       console.log("✅ Application initialized successfully!");
-      console.log("📋 Available commands: r, s, d, process, q");
-      console.log("⏰ Scheduled to run daily at midnight (00:00)");
+      console.log("📋 Available commands: r (or process), import-misp, s, d, q");
     } catch (error) {
       console.error("❌ Failed to initialize application:", error.message);
       process.exit(1);
@@ -58,16 +75,17 @@ class ThreatIntelligenceApp {
   }
 
   async initializeDatabaseConnections() {
+    this.dataSources.push({ type: 'misp', dbName: 'mispDB' });
     for (const source of this.dataSources) {
       try {
         const connection = await mongoose.createConnection(
           process.env.MONGODB_URI.replace(/\/\w*$/, `/${source.dbName}`),
-          { maxPoolSize: 10, serverSelectionTimeoutMS: 5000, socketTimeoutMS: 45000 }
+          { maxPoolSize: 15, serverSelectionTimeoutMS: 5000, socketTimeoutMS: 45000 }
         );
         this.connections.set(source.type, connection);
-        console.log(`✅ Connected to ${source.type} database: ${source.dbName}`);
+        console.log(`✅ Connected to ${source.dbName} database`);
       } catch (error) {
-        console.error(`❌ Failed to connect to ${source.type} database:`, error.message);
+        console.error(`❌ Failed to connect to ${source.dbName} database:`, error.message);
         throw error;
       }
     }
@@ -78,7 +96,57 @@ class ThreatIntelligenceApp {
       console.log("🕛 Midnight scheduler triggered - Starting daily processing...");
       await this.processAllSources();
     }, { timezone: "Asia/Dhaka" });
-    console.log("⏰ Cron scheduler initialized for daily midnight processing");
+    console.log("⏰ Cron scheduler initialized for daily data fetching");
+  }
+
+  async importMispData() {
+    if (this.isProcessing) {
+      console.log("⚠️ A process is already running, please wait.");
+      return;
+    }
+    const filePath = path.join(__dirname, 'misp_output.json');
+    if (!fs.existsSync(filePath)) {
+      console.error(`\n❌ MISP data file not found at ${filePath}`);
+      console.log("   Please run the curl command to download it before importing.");
+      return;
+    }
+    this.isProcessing = true;
+    console.log(`\n📦 Importing MISP data from ${filePath}...`);
+    const mispConnection = this.connections.get('misp');
+    const MispAttributeModel = require('./models/MispAttribute')(mispConnection);
+    let totalUpserted = 0, totalModified = 0;
+    try {
+      const rawData = fs.readFileSync(filePath);
+      const mispJson = JSON.parse(rawData);
+      const attributes = mispJson?.response?.Attribute;
+      if (!attributes || attributes.length === 0) {
+        console.log("   No attributes found in the MISP data file.");
+        this.isProcessing = false;
+        return;
+      }
+      console.log(`   Found ${attributes.length.toLocaleString()} attributes. Storing in database...`);
+      const chunkSize = 5000;
+      const totalChunks = Math.ceil(attributes.length / chunkSize);
+      for (let i = 0; i < totalChunks; i++) {
+        process.stdout.write(`    > Processing chunk ${i + 1} of ${totalChunks}...\r`);
+        const chunk = attributes.slice(i * chunkSize, (i + 1) * chunkSize);
+        const bulkOps = chunk.map(attr => ({
+          updateOne: { filter: { uuid: attr.uuid }, update: { $set: attr }, upsert: true }
+        }));
+        if (bulkOps.length > 0) {
+            const result = await MispAttributeModel.bulkWrite(bulkOps, { ordered: false });
+            totalUpserted += result.upsertedCount;
+            totalModified += result.modifiedCount;
+        }
+      }
+      console.log("\n✅ MISP data import complete.                  ");
+      console.log(`   - New records: ${totalUpserted.toLocaleString()}`);
+      console.log(`   - Updated records: ${totalModified.toLocaleString()}`);
+    } catch (e) {
+      console.error("\n❌ Error during MISP data import:", e.message);
+    } finally {
+      this.isProcessing = false;
+    }
   }
 
   async processAllSources() {
@@ -87,22 +155,17 @@ class ThreatIntelligenceApp {
         return;
     }
     this.isProcessing = true;
-    
-    // Initialize stats structure for the current run
     this.processingStats = { lastRun: new Date(), details: {} };
-    this.dataSources.forEach(source => {
+    const threatSources = this.dataSources.filter(s => s.type !== 'misp');
+    threatSources.forEach(source => {
         this.processingStats.details[source.type] = { fetched: 0, inserted: 0, duplicates: 0 };
     });
-
     const startTime = Date.now();
-
     try {
-        // --- PHASE 1: FETCH AND STORE ALL INDICATORS ---
         console.log("\n" + "🔄".repeat(20));
-        console.log("🔄 PHASE 1: FETCHING & STORING ALL INDICATORS");
+        console.log("🔄 FETCHING & STORING INDICATORS FROM THREAT FEEDS");
         console.log("🔄".repeat(20));
-
-        for (const source of this.dataSources) {
+        for (const source of threatSources) {
             try {
                 console.log(`\n📥 Fetching from ${source.type.toUpperCase()}...`);
                 const indicators = await this.fetchIndicators(source);
@@ -112,7 +175,6 @@ class ThreatIntelligenceApp {
                 }
                 this.processingStats.details[source.type].fetched = indicators.length;
                 console.log(`  - Fetched ${indicators.length.toLocaleString()} unique indicators.`);
-                
                 const storedCount = await this.storeIndicators(source, indicators);
                 this.processingStats.details[source.type].inserted = storedCount;
                 this.processingStats.details[source.type].duplicates = indicators.length - storedCount;
@@ -121,29 +183,8 @@ class ThreatIntelligenceApp {
                 console.error(`❌ Error during fetch/store for ${source.type}:`, error.message);
             }
         }
-
-        // --- PHASE 2: ANALYZE NEW INDICATORS WITH MISP ---
-        console.log("\n" + "🛡️".repeat(20));
-        console.log("🛡️ PHASE 2: ANALYZING NEW INDICATORS WITH MISP");
-        console.log("🛡️".repeat(20));
-
-        for (const source of this.dataSources) {
-            try {
-                const analyzed = await this.analyzeWithMISP(source);
-                if (analyzed > 0) {
-                    console.log(`\n  - Analyzed ${analyzed.toLocaleString()} new ${source.type.toUpperCase()} indicators.`);
-                } else {
-                    console.log(`\n  - No new indicators to analyze for ${source.type.toUpperCase()}.`);
-                }
-            } catch (error) {
-                console.error(`❌ Error during MISP analysis for ${source.type}:`, error.message);
-            }
-        }
-
         const duration = ((Date.now() - startTime) / 1000 / 60).toFixed(2);
-        console.log("\n" + "✅".repeat(20));
-        console.log("✅ COMPREHENSIVE PROCESSING COMPLETED");
-        console.log("✅".repeat(20));
+        console.log("\n" + "✅".repeat(20) + "\n✅ DATA FETCHING COMPLETED" + "\n✅".repeat(20));
         console.log(`⏱️ Total duration: ${duration} minutes`);
     } catch (error) {
         console.error("💥 Critical error during processing:", error.message);
@@ -169,95 +210,27 @@ class ThreatIntelligenceApp {
     let storedCount = 0;
     const chunkSize = source.chunkSize;
     const totalChunks = Math.ceil(indicators.length / chunkSize);
-    
-    // **FIX**: Add an initial log to show the process has started
     console.log(`  - Storing ${indicators.length.toLocaleString()} indicators in ${totalChunks} chunks...`);
-
     for (let i = 0; i < totalChunks; i++) {
       const chunk = indicators.slice(i * chunkSize, (i + 1) * chunkSize);
       try {
-        // **FIX**: Update progress more frequently
         if ((i + 1) % 10 === 0 || i + 1 === totalChunks) {
             process.stdout.write(`    > Processing chunk ${i + 1}/${totalChunks}...\r`);
         }
-        const bulkOps = chunk.map(indicator => ({
-          updateOne: {
-            filter: { indicator, type: source.type },
-            update: { $setOnInsert: { indicator, type: source.type, firstSeen: new Date(), lastUpdated: new Date(), status: 'malicious' } },
-            upsert: true
-          }
+        const docs = chunk.map(indicator => ({
+          indicator, type: source.type, firstSeen: new Date(), lastUpdated: new Date(), status: 'malicious'
         }));
-        const result = await ThreatIndicatorModel.bulkWrite(bulkOps, { ordered: false });
-        storedCount += result.upsertedCount;
+        const result = await ThreatIndicatorModel.insertMany(docs, { ordered: false });
+        storedCount += result.length;
         if (global.gc) { global.gc(); }
       } catch (error) {
-        // Silent error
+        if (error.code === 11000) { storedCount += error.result.nInserted; }
       }
     }
-    process.stdout.write("\n"); // Add a new line after the progress indicator is done
+    process.stdout.write("\n");
     return storedCount;
   }
 
-  async analyzeWithMISP(source) {
-    const connection = this.connections.get(source.type);
-    const ThreatIndicatorModel = require('./models/ThreatIndicator')(connection);
-    const MispScanResultModel = require('./models/MispScanResult')(connection);
-    const unscanned = await ThreatIndicatorModel.find({ mispScanned: { $ne: true } }).select('indicator -_id').lean();
-    if (unscanned.length === 0) return 0;
-
-    const indicators = unscanned.map(doc => doc.indicator);
-    const batchSize = source.batchSize;
-    const totalBatches = Math.ceil(indicators.length / batchSize);
-    let analyzedCount = 0;
-    const scriptPath = path.join(__dirname, "misp_universal_scanner.py");
-    
-    for (let i = 0; i < totalBatches; i++) {
-      const batch = indicators.slice(i * batchSize, (i + 1) * batchSize);
-      try {
-        if ((i + 1) % 10 === 0 || i + 1 === totalBatches) {
-            process.stdout.write(`  - MISP Progress for ${source.type.toUpperCase()}: Batch ${i + 1}/${totalBatches}...\r`);
-        }
-        const results = await this.runMispScan(scriptPath, batch);
-        if (results && results.length > 0) {
-          const bulkOps = results.map(result => ({
-            updateOne: {
-              filter: { indicator: result.indicator, type: source.type },
-              update: { $set: { ...result, scannedAt: new Date() } },
-              upsert: true
-            }
-          }));
-          await MispScanResultModel.bulkWrite(bulkOps, { ordered: false });
-          await ThreatIndicatorModel.updateMany({ indicator: { $in: batch } }, { $set: { mispScanned: true, lastMispScan: new Date() } });
-          analyzedCount += batch.length;
-        }
-        await this.delay(1000);
-      } catch (error) {
-        // Silent error
-      }
-    }
-    return analyzedCount;
-  }
-
-  async runMispScan(scriptPath, indicators) {
-    return new Promise((resolve, reject) => {
-      const pythonProcess = spawn("python3", [scriptPath, ...indicators]);
-      let scriptOutput = "";
-      let errorOutput = "";
-      pythonProcess.stdout.on("data", (data) => { scriptOutput += data.toString(); });
-      pythonProcess.stderr.on("data", (data) => { errorOutput += data.toString(); });
-      pythonProcess.on("close", (code) => {
-        if (code !== 0) return reject(new Error(`MISP scan failed`));
-        try {
-          resolve(JSON.parse(scriptOutput));
-        } catch (error) {
-          reject(new Error(`Error parsing Python output`));
-        }
-      });
-      setTimeout(() => { pythonProcess.kill(); reject(new Error("MISP scan timed out")); }, 300000);
-    });
-  }
-
-  // --- Validator Functions ---
   isValidIP(ip) { return /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/.test(ip); }
   isValidSHA256(hash) { return /^[a-fA-F0-9]{64}$/.test(hash); }
   isValidMD5(hash) { return /^[a-fA-F0-9]{32}$/.test(hash); }
@@ -267,7 +240,7 @@ class ThreatIntelligenceApp {
     if (this.isValidIP(indicator)) return 'ip';
     if (this.isValidSHA256(indicator)) return 'sha256';
     if (this.isValidMD5(indicator)) return 'md5';
-    if (this.isValidDomain(indicator)) return 'domain'; // Domain check covers hostname
+    if (this.isValidDomain(indicator)) return 'domain';
     return null;
   }
 
@@ -276,60 +249,38 @@ class ThreatIntelligenceApp {
     this.expressApp.set("views", path.join(__dirname, "views"));
 
     this.expressApp.get("/", async (req, res) => {
-        const stats = await this.getDashboardStats();
-        res.render("threat-intelligence", { stats, scanResult: null, error: null, processingStatus: this.isProcessing, lastRunStats: this.processingStats });
+        const summaryStats = await this.getSummaryStats();
+        res.render("index", { summaryStats, scanResult: null });
     });
-
+    
     this.expressApp.post("/scan", async (req, res) => {
         const { indicator } = req.body;
         let scanResult = null;
-        let error = null;
-        const indicatorType = this.detectIndicatorType(indicator);
-
-        if (!indicatorType) {
-            error = "Invalid or unsupported indicator type.";
-        } else {
-            try {
-                const connection = this.connections.get(indicatorType);
-                const ThreatIndicatorModel = require('./models/ThreatIndicator')(connection);
-                const MispScanResultModel = require('./models/MispScanResult')(connection);
-
-                const threatIndicator = await ThreatIndicatorModel.findOne({ indicator }).lean();
-                const mispResult = await MispScanResultModel.findOne({ indicator }).lean();
-
-                if (threatIndicator) {
-                    const combinedData = { ...threatIndicator, ...mispResult };
-                    scanResult = { indicator, type: indicatorType, source: 'Local Database', data: combinedData };
-                } else if (this.isProcessing) {
-                    scanResult = { 
-                        indicator, 
-                        type: indicatorType, 
-                        source: 'Local Database Only', 
-                        data: { message: "Indicator not found in local DB. Live MISP scan is disabled during bulk processing." } 
-                    };
-                } else {
-                    const scriptPath = path.join(__dirname, "misp_universal_scanner.py");
-                    const mispResults = await this.runMispScan(scriptPath, [indicator]);
-                    if (mispResults && mispResults.length > 0) {
-                        scanResult = { indicator, type: indicatorType, source: 'Live MISP Scan', data: mispResults[0] };
-                    } else {
-                        scanResult = { indicator, type: indicatorType, source: 'Live MISP Scan', data: { message: "Not found in MISP." } };
+        try {
+            const mispConnection = this.connections.get('misp');
+            const MispAttributeModel = require('./models/MispAttribute')(mispConnection);
+            const mispData = await MispAttributeModel.find({ value: indicator }).lean();
+            if (mispData && mispData.length > 0) {
+                scanResult = { indicator, source: 'MISP Database', data: mispData };
+            } else {
+                const indicatorType = this.detectIndicatorType(indicator);
+                if (indicatorType) {
+                    const connection = this.connections.get(indicatorType);
+                    const ThreatIndicatorModel = require('./models/ThreatIndicator')(connection);
+                    const threatIndicator = await ThreatIndicatorModel.findOne({ indicator }).lean();
+                    if (threatIndicator) {
+                        scanResult = { indicator, source: 'Local Threat Feed', data: threatIndicator };
                     }
                 }
-            } catch (e) {
-                error = "An error occurred during the scan. Check MISP configuration and connectivity.";
             }
+            if (!scanResult) {
+                scanResult = { indicator, source: 'Not Found', data: { message: `This indicator was not found in any database.` } };
+            }
+        } catch (e) {
+            scanResult = { indicator, source: 'Error', data: { message: 'An error occurred during the scan.'} };
         }
-        const stats = await this.getDashboardStats();
-        res.render("threat-intelligence", { stats, scanResult, error, processingStatus: this.isProcessing, lastRunStats: this.processingStats });
-    });
-    
-    this.expressApp.post("/api/process/manual", (req, res) => {
-        if (this.isProcessing) {
-            return res.status(409).json({ message: "Processing already in progress" });
-        }
-        this.processAllSources().catch(console.error); // Run in background
-        res.redirect('/');
+        const summaryStats = await this.getSummaryStats();
+        res.render("index", { summaryStats, scanResult });
     });
 
     const PORT = process.env.PORT || 3001;
@@ -340,26 +291,42 @@ class ThreatIntelligenceApp {
 
   async getDashboardStats() {
       const stats = {};
-      for (const source of this.dataSources) {
+      const threatSources = this.dataSources.filter(s => s.type !== 'misp' && s.url);
+      for (const source of threatSources) {
           const connection = this.connections.get(source.type);
           const ThreatIndicatorModel = require('./models/ThreatIndicator')(connection);
-          const MispScanResultModel = require('./models/MispScanResult')(connection);
           const totalCount = await ThreatIndicatorModel.countDocuments();
-          const scannedCount = await MispScanResultModel.countDocuments();
-          stats[source.type] = { total: totalCount, scanned: scannedCount };
+          stats[source.type] = { total: totalCount };
       }
       return stats;
   }
+  
+  async getSummaryStats() {
+    const stats = { domain: 0, ip: 0, hashes: 0 };
+    const threatSources = this.dataSources.filter(s => s.type !== 'misp' && s.url);
+    for (const source of threatSources) {
+        const connection = this.connections.get(source.type);
+        const ThreatIndicatorModel = require('./models/ThreatIndicator')(connection);
+        const totalCount = await ThreatIndicatorModel.countDocuments();
+        if (source.type === 'domain' || source.type === 'hostname') { stats.domain += totalCount; } 
+        else if (source.type === 'ip') { stats.ip = totalCount; } 
+        else if (source.type === 'md5' || source.type === 'sha256') { stats.hashes += totalCount; }
+    }
+    return stats;
+  }
 
   async showInitialStats() {
-    console.log("\n" + "�".repeat(20));
+    console.log("\n" + "📊".repeat(20));
     console.log("📊 CURRENT DATABASE STATISTICS");
     console.log("📊".repeat(20));
     const stats = await this.getDashboardStats();
     for(const type in stats){
         console.log(`🗄️  ${type.toUpperCase()} indicators: ${stats[type].total.toLocaleString()}`);
-        console.log(`🛡️  ${type.toUpperCase()} MISP scanned: ${stats[type].scanned.toLocaleString()}`);
     }
+    const mispConnection = this.connections.get('misp');
+    const MispAttributeModel = require('./models/MispAttribute')(mispConnection);
+    const mispCount = await MispAttributeModel.countDocuments();
+    console.log(`🛡️  MISP indicators: ${mispCount.toLocaleString()}`);
     console.log("📊".repeat(20) + "\n");
   }
 
@@ -368,11 +335,13 @@ class ThreatIntelligenceApp {
     rl.on("line", async (input) => {
       const command = input.trim().toLowerCase();
       switch (command) {
-        case "r":
-        case "process":
-          console.log("\n🔧 Running manual processing...");
-          if (!this.isProcessing) { this.processAllSources().catch(console.error); } 
-          else { console.log("⚠️ Processing already in progress"); }
+        case "r": case "process":
+          console.log("\n🔧 Running manual data fetching...");
+          this.processAllSources().catch(console.error);
+          break;
+        case "import-misp":
+          console.log("\n📦 Starting MISP data import...");
+          this.importMispData().catch(console.error);
           break;
         case "s":
           console.log(`\n📊 Processing Status: ${this.isProcessing ? "🟢 Running" : "🔴 Idle"}`);
@@ -385,7 +354,7 @@ class ThreatIntelligenceApp {
           process.exit(0);
           break;
         default:
-          console.log("❓ Unknown command. Available: r, s, d, process, q");
+          console.log("❓ Unknown command. Available: r (process), import-misp, s, d, q");
       }
     });
   }
@@ -393,18 +362,12 @@ class ThreatIntelligenceApp {
   setupGracefulShutdown() {
     const gracefulShutdown = async (signal) => {
       console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
-      for (const [type, connection] of this.connections) {
-        await connection.close();
-        console.log(`✅ Closed ${type} database connection`);
-      }
+      for (const [, connection] of this.connections) { await connection.close(); }
+      console.log('All database connections closed.');
       process.exit(0);
     };
     process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
     process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-  }
-
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
