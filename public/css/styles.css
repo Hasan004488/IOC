@@ -5,14 +5,14 @@ body {
 
 /* --- Hero Search Section (index.ejs) --- */
 .hero-search {
-    height: 100vh;
+    height: 60vh; /* Reduced height to prevent it from covering the full screen */
+    min-height: 450px;
     background-color: #e9ecef;
     padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.5s ease-in-out;
-}
-
-.hero-search.active {
-    height: 50vh;
 }
 
 .hero-search .form-control {
@@ -31,7 +31,8 @@ body {
 
 /* --- Result Section (index.ejs) --- */
 .result-container {
-    margin-top: -80px; /* Pulls the result card up into the hero section */
+    padding-top: 2rem; /* Replaced negative margin with padding */
+    padding-bottom: 2rem;
     position: relative;
     z-index: 10;
 }
@@ -74,4 +75,32 @@ body {
 .table thead th {
     background-color: #f8f9fa;
     border-bottom-width: 1px;
+}
+
+.dashboard-stats {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.stat-card {
+    background-color: #fff;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    text-align: center;
+    min-width: 120px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #0d6efd;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-transform: uppercase;
 }
