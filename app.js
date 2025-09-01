@@ -55,6 +55,8 @@ class ThreatIntelligenceApp {
     this.isProcessing = false;
     this.connections = new Map();
     this.processingStats = { lastRun: null, details: {} };
+    this.cachedSummaryStats = { domain: 0, ip: 0, hashes: 0 };
+    this.cachedDashboardStats = {};
   }
 
   async initialize() {
@@ -62,7 +64,7 @@ class ThreatIntelligenceApp {
       console.log("🚀 Initializing Application...");
       await this.initializeDatabaseConnections();
       this.setupExpress();
-      await this.showInitialStats();
+      await this.updateCachedStats();
       this.setupScheduler();
       this.setupCLI();
       this.setupGracefulShutdown();
@@ -74,6 +76,35 @@ class ThreatIntelligenceApp {
       console.error("❌ Failed to initialize application:", error.message);
       process.exit(1);
     }
+  }
+
+  async updateCachedStats() {
+    console.log("\n🔄 Updating cached database statistics...");
+    const summaryStats = { domain: 0, ip: 0, hashes: 0 };
+    const dashboardStats = {};
+    const threatSources = this.dataSources.filter(
+      (s) => s.type !== "misp" && s.url
+    );
+
+    for (const source of threatSources) {
+      const connection = this.connections.get(source.type);
+      const ThreatIndicatorModel =
+        require("./models/ThreatIndicator")(connection);
+      const totalCount = await ThreatIndicatorModel.countDocuments();
+      dashboardStats[source.type] = { total: totalCount };
+
+      if (source.type === "domain" || source.type === "hostname") {
+        summaryStats.domain += totalCount;
+      } else if (source.type === "ip") {
+        summaryStats.ip = totalCount;
+      } else if (source.type === "md5" || source.type === "sha256") {
+        summaryStats.hashes += totalCount;
+      }
+    }
+    this.cachedSummaryStats = summaryStats;
+    this.cachedDashboardStats = dashboardStats;
+    console.log("✅ Cached statistics updated successfully.");
+    await this.showInitialStats();
   }
 
   async initializeDatabaseConnections() {
@@ -176,6 +207,7 @@ class ThreatIntelligenceApp {
       console.error("\n❌ Error during MISP data import:", e.message);
     } finally {
       this.isProcessing = false;
+      await this.updateCachedStats();
     }
   }
 
@@ -237,6 +269,7 @@ class ThreatIntelligenceApp {
       console.error("💥 Critical error during processing:", error.message);
     } finally {
       this.isProcessing = false;
+      await this.updateCachedStats();
     }
   }
 
@@ -284,9 +317,6 @@ class ThreatIntelligenceApp {
         const docs = chunk.map((indicator) => ({
           indicator,
           type: source.type,
-          firstSeen: new Date(),
-          lastUpdated: new Date(),
-          status: "malicious",
         }));
         const result = await ThreatIndicatorModel.insertMany(docs, {
           ordered: false,
@@ -335,16 +365,38 @@ class ThreatIntelligenceApp {
   setupExpress() {
     this.expressApp.set("view engine", "ejs");
     this.expressApp.set("views", path.join(__dirname, "views"));
+    if (process.env.NODE_ENV !== "production") {
+      this.expressApp.set("view cache", false);
+    }
 
     this.expressApp.get("/", async (req, res) => {
-      const summaryStats = await this.getSummaryStats();
-      const dashboardStats = await this.getDashboardStats();
-      res.render("index", { summaryStats, dashboardStats, scanResult: null });
+      res.render("index", {
+        summaryStats: this.cachedSummaryStats,
+        dashboardStats: this.cachedDashboardStats,
+        scanResult: null,
+      });
     });
 
     this.expressApp.post("/scan", async (req, res) => {
-      const { indicator } = req.body;
+      const indicator = req.body.indicator.trim();
       let scanResult = null;
+
+      const indicatorType = this.detectIndicatorType(indicator);
+      if (!indicatorType) {
+        scanResult = {
+          indicator,
+          source: "Invalid",
+          data: {
+            message: "Invalid indicator format. Please enter a valid IP, Domain, or Hash.",
+          },
+        };
+        return res.render("index", {
+          summaryStats: this.cachedSummaryStats,
+          dashboardStats: this.cachedDashboardStats,
+          scanResult,
+        });
+      }
+
       try {
         const mispConnection = this.connections.get("misp");
         const MispAttributeModel = require("./models/MispAttribute")(
@@ -353,25 +405,23 @@ class ThreatIntelligenceApp {
         const mispData = await MispAttributeModel.find({
           value: indicator,
         }).lean();
+
         if (mispData && mispData.length > 0) {
           scanResult = { indicator, source: "MISP Database", data: mispData };
         } else {
-          const indicatorType = this.detectIndicatorType(indicator);
-          if (indicatorType) {
-            const connection = this.connections.get(indicatorType);
-            const ThreatIndicatorModel = require("./models/ThreatIndicator")(
-              connection
-            );
-            const threatIndicator = await ThreatIndicatorModel.findOne({
+          const connection = this.connections.get(indicatorType);
+          const ThreatIndicatorModel = require("./models/ThreatIndicator")(
+            connection
+          );
+          const threatIndicator = await ThreatIndicatorModel.findOne({
+            indicator,
+          }).lean();
+          if (threatIndicator) {
+            scanResult = {
               indicator,
-            }).lean();
-            if (threatIndicator) {
-              scanResult = {
-                indicator,
-                source: "Local Threat Feed",
-                data: threatIndicator,
-              };
-            }
+              source: "Local Threat Feed",
+              data: threatIndicator,
+            };
           }
         }
         if (!scanResult) {
@@ -388,9 +438,11 @@ class ThreatIntelligenceApp {
           data: { message: "An error occurred during the scan." },
         };
       }
-      const summaryStats = await this.getSummaryStats();
-      const dashboardStats = await this.getDashboardStats();
-      res.render("index", { summaryStats, dashboardStats, scanResult });
+      res.render("index", {
+        summaryStats: this.cachedSummaryStats,
+        dashboardStats: this.cachedDashboardStats,
+        scanResult,
+      });
     });
 
     const PORT = process.env.PORT || 3001;
@@ -399,52 +451,13 @@ class ThreatIntelligenceApp {
     });
   }
 
-  async getDashboardStats() {
-    const stats = {};
-    const threatSources = this.dataSources.filter(
-      (s) => s.type !== "misp" && s.url
-    );
-    for (const source of threatSources) {
-      const connection = this.connections.get(source.type);
-      const ThreatIndicatorModel = require("./models/ThreatIndicator")(
-        connection
-      );
-      const totalCount = await ThreatIndicatorModel.countDocuments();
-      stats[source.type] = { total: totalCount };
-    }
-    return stats;
-  }
-
-  async getSummaryStats() {
-    const stats = { domain: 0, ip: 0, hashes: 0 };
-    const threatSources = this.dataSources.filter(
-      (s) => s.type !== "misp" && s.url
-    );
-    for (const source of threatSources) {
-      const connection = this.connections.get(source.type);
-      const ThreatIndicatorModel = require("./models/ThreatIndicator")(
-        connection
-      );
-      const totalCount = await ThreatIndicatorModel.countDocuments();
-      if (source.type === "domain" || source.type === "hostname") {
-        stats.domain += totalCount;
-      } else if (source.type === "ip") {
-        stats.ip = totalCount;
-      } else if (source.type === "md5" || source.type === "sha256") {
-        stats.hashes += totalCount;
-      }
-    }
-    return stats;
-  }
-
   async showInitialStats() {
     console.log("\n" + "📊".repeat(20));
     console.log("📊 CURRENT DATABASE STATISTICS");
     console.log("📊".repeat(20));
-    const stats = await this.getDashboardStats();
-    for (const type in stats) {
+    for (const type in this.cachedDashboardStats) {
       console.log(
-        `🗄️  ${type.toUpperCase()} indicators: ${stats[
+        `🗄️  ${type.toUpperCase()} indicators: ${this.cachedDashboardStats[
           type
         ].total.toLocaleString()}`
       );
