@@ -226,7 +226,7 @@
               data-bs-parent="#scanResultAccordion"
             >
               <div class="accordion-body p-4">
-                <% if (scanResult.source === 'MISP Database') { %>
+                <% if (scanResult.source === 'Local Database') { %>
                 <div
                   class="alert alert-danger d-flex align-items-center mb-4"
                   role="alert"
@@ -234,7 +234,7 @@
                   <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
                   <div>
                     <h5 class="alert-heading mb-1">
-                      Threat Detected in MISP Database
+                      Threat Detected in Local Database
                     </h5>
                     <p class="mb-0">
                       This indicator has been flagged as malicious in our
