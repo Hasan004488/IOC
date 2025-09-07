@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Search - Threat Intelligence</title>
+    <title>Threat Intelligence Center</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -18,545 +18,426 @@
     />
     <style>
       body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background-color: #f8f9fa;
-        line-height: 1.6;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
       }
 
-      /* Hero Search Section */
-      .hero-search {
-        min-height: 60vh;
-        background-color: #e9ecef;
-        padding: 3rem 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .hero-search h1 {
-        font-weight: 700;
-        font-size: 3.5rem;
-        margin-bottom: 1rem;
-        color: #212529;
-      }
-
-      .hero-search .lead {
-        color: #6c757d;
-        font-size: 1.25rem;
-        font-weight: 400;
-        margin-bottom: 3rem;
-      }
-
-      /* Search Card */
-      .card {
-        border: none;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        background: white;
-      }
-
-      .card-body {
-        padding: 2.5rem;
-      }
-
-      /* Input Styling */
-      .form-control {
-        border: 2px solid #e9ecef;
-        border-radius: 12px;
-        padding: 1rem 1.25rem;
-        font-size: 1.1rem;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        background: white;
-      }
-
-      .form-control:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
-        outline: none;
-      }
-
-      .btn-primary {
-        background-color: #0d6efd;
-        border: none;
-        border-radius: 12px;
-        padding: 1rem 2rem;
-        font-weight: 600;
-        font-size: 1.1rem;
-        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
-        transition: all 0.3s ease;
-      }
-
-      
-
-      /* Stats Section */
-      .summary-stats p {
-        color: #6c757d;
-        font-size: 1rem;
-        font-weight: 500;
-        background: white;
-        padding: 1rem 2rem;
-        border-radius: 50px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        display: inline-block;
-        border: 1px solid #e9ecef;
-      }
-
-      /* Result Container */
-      .result-container {
-        padding: 3rem 1rem;
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-
-      /* Accordion Styling */
-      .accordion {
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        background: white;
-        border: 1px solid #e9ecef;
-      }
-
-      .accordion-item {
-        border: none;
-        background: white;
-      }
-
-      .accordion-button {
-        background: #0d6efd;
-        color: white;
-        border: none;
-        padding: 1.5rem 2rem;
-        font-weight: 600;
-        font-size: 1.1rem;
-        box-shadow: none;
-      }
-
-      .accordion-button:not(.collapsed) {
-        background: #0b5ed7;
-        color: white;
-        box-shadow: none;
-      }
-
-      .accordion-button:focus {
-        border-color: transparent;
-        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
-      }
-
-      .accordion-button code {
-        background: rgba(255,255,255,0.2);
-        color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: 8px;
-        font-weight: 500;
-      }
-
-      .accordion-body {
-        padding: 2rem;
-        background: white;
-      }
-
-      /* Alert Styling */
-      .alert {
-        border: none;
-        border-radius: 12px;
-        padding: 1.25rem 1.5rem;
-        margin-bottom: 1.5rem;
-        font-weight: 500;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      }
-
-      .alert-danger {
-        background-color: #f8d7da;
-        color: #721c24;
-        border-left: 4px solid #dc3545;
-      }
-
-      .alert-warning {
-        background-color: #fff3cd;
-        color: #856404;
-        border-left: 4px solid #ffc107;
-      }
-
-      .alert-success {
-        background-color: #d1eddb;
-        color: #155724;
-        border-left: 4px solid #198754;
-      }
-
-      /* MISP Attribute Card */
-      .misp-attribute-card {
-        background: #ffffff;
-        border: 1px solid #e9ecef;
-        border-radius: 12px;
-        padding: 2rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      }
-
-      .misp-attribute-card p {
-        margin-bottom: 1rem;
-        font-size: 0.95rem;
-      }
-
-      .misp-attribute-card strong {
-        font-weight: 600;
-        color: #374151;
-        display: inline-flex;
-        align-items: center;
-        min-width: 140px;
-      }
-
-      .misp-attribute-card i {
-        width: 18px;
-        height: 18px;
-        margin-right: 8px;
-      }
-
-      /* Badge Styling */
-      .badge {
-        font-weight: 500;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.875rem;
-        margin-right: 0.5rem;
-        margin-bottom: 0.5rem;
-      }
-
-      .bg-secondary {
-        background-color: #6c757d !important;
-      }
-
-      .bg-primary-subtle {
-        background-color: #cfe2ff !important;
-        color: #0d6efd !important;
-        border: 1px solid rgba(13, 110, 253, 0.2);
-      }
-
-      /* List Group */
-      .list-group-item {
-        border: none;
-        border-bottom: 1px solid #f1f3f4;
-        padding: 1.25rem 0;
-        background: transparent;
-        font-size: 0.95rem;
-      }
-
-      .list-group-item:last-child {
-        border-bottom: none;
-      }
-
-      .list-group-item strong {
-        color: #374151;
-        font-weight: 600;
-        margin-right: 0.75rem;
-        min-width: 120px;
-        display: inline-block;
-      }
-
-      /* Input Validation */
-      .is-invalid {
-        border-color: #dc3545 !important;
-        box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.1) !important;
-      }
-
-      .text-danger {
-        color: #dc3545 !important;
-        font-weight: 500;
-        font-size: 0.875rem;
-      }
-
-      /* Loader */
-      .spinner-border {
-        width: 3rem;
-        height: 3rem;
-        border-width: 0.3rem;
-      }
-
-      #loader p {
-        margin-top: 1rem;
-        color: #6c757d;
-        font-weight: 500;
-      }
-
-      /* Responsive Design */
-      @media (max-width: 768px) {
-        .hero-search h1 {
-          font-size: 2.5rem;
+      /* Custom animation for results appearing */
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
         }
-        
-        .hero-search .lead {
-          font-size: 1.1rem;
-        }
-        
-        .card-body {
-          padding: 2rem;
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
       }
 
-      /* Code styling */
-      code {
-        background: #f8f9fa;
-        color: #495057;
-        padding: 0.25rem 0.6rem;
-        border-radius: 6px;
-        font-weight: 500;
-        font-size: 0.9em;
-      }
-
-      /* Smooth transitions */
-      .card,
-      .btn,
-      .form-control,
-      .alert {
-        transition: all 0.3s ease;
+      .result-animation {
+        animation: slideIn 0.5s ease-out;
       }
     </style>
   </head>
 
-  <body>
-    <div class="container-fluid p-0">
-      <div class="row g-0">
-        <div class="col-12">
-          <div class="tab-content" id="myTabContent">
-            <div
-              class="tab-pane fade show active"
-              id="search"
-              role="tabpanel"
-              aria-labelledby="search-tab"
-            >
-              <div class="hero-search">
-                <div class="container text-center">
-                  <header class="mb-5">
-                    <h1 class="display-4 fw-bold">Threat Intelligence Center</h1>
-                    <p class="lead text-muted">
-                      On-demand IOC Scanning and Monitoring.
-                    </p>
-                  </header>
+  <body class="bg-light">
+    <% if (!scanResult) { %>
+    <div
+      class="min-vh-100 d-flex flex-column justify-content-center align-items-center px-3"
+    >
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-lg-8 col-xl-7">
+            <div class="text-center mb-5">
+              <div class="mb-4">
+                <i
+                  class="bi bi-shield-check text-primary"
+                  style="font-size: 4rem"
+                ></i>
+              </div>
+              <h1 class="display-5 fw-bold text-dark mb-3">
+                Threat Intelligence Center
+              </h1>
+              <p class="text-muted fs-5">
+                On-demand IOC Scanning and Monitoring
+              </p>
+            </div>
 
-                  <div class="row justify-content-center">
-                    <div class="col-lg-8">
-                      <div class="card shadow-sm">
-                        <div class="card-body">
-                          <form action="/scan" method="POST" id="scanForm">
-                            <div class="input-group input-group-lg">
-                              <input
-                                type="text"
-                                name="indicator"
-                                id="indicatorInput"
-                                class="form-control"
-                                placeholder="Scan an IP, Domain, or Hash..."
-                                required
-                                value="<%= scanResult ? scanResult.indicator : '' %>"
-                              />
-                              <button class="btn btn-primary px-4" type="submit">
-                                <i class="bi bi-search me-2"></i>Scan
-                              </button>
+            <div class="card shadow-lg border-0 rounded-4">
+              <div class="card-body p-4">
+                <form action="/scan" method="POST" id="scanForm">
+                  <div class="input-group input-group-lg">
+                    <span class="input-group-text bg-white border-end-0">
+                      <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input
+                      type="text"
+                      name="indicator"
+                      id="indicatorInput"
+                      class="form-control border-start-0 ps-0"
+                      placeholder="Enter IP, Domain, SHA256, or MD5 hash..."
+                      required
+                      autofocus
+                    />
+                    <button class="btn btn-primary px-4" type="submit">
+                      Scan Now
+                    </button>
+                  </div>
+                  <div
+                    id="validationError"
+                    class="text-danger mt-2 small d-none"
+                  ></div>
+                </form>
+
+                <div class="mt-3">
+                  <small class="text-muted">Examples:</small>
+                  <div class="d-flex flex-wrap gap-2 mt-2">
+                    <span
+                      class="badge bg-secondary-subtle text-secondary"
+                      style="cursor: pointer"
+                      ><i class="bi bi-geo-alt me-1"></i>192.168.1.1</span
+                    >
+                    <span
+                      class="badge bg-secondary-subtle text-secondary"
+                      style="cursor: pointer"
+                      ><i class="bi bi-globe me-1"></i>example.com</span
+                    >
+                    <span
+                      class="badge bg-secondary-subtle text-secondary"
+                      style="cursor: pointer"
+                      ><i class="bi bi-hash me-1"></i
+                      >d2ca3fd0b44c2e54b7c1cc9809...</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-center mt-5">
+              <div
+                class="d-inline-flex align-items-center bg-white rounded-pill px-4 py-2 shadow-sm"
+              >
+                <i class="bi bi-database-fill text-primary me-3"></i>
+                <small class="text-muted">
+                  <% if (dashboardStats) { %>
+                  <strong
+                    >IPs:</strong
+                  >
+                  <%= (dashboardStats.ip?.total || 0).toLocaleString() %> |
+                  <strong
+                    >Domains:</strong
+                  >
+                  <%= (dashboardStats.domain?.total || 0).toLocaleString() %> |
+                  <strong
+                    >Hostnames:</strong
+                  >
+                  <%= (dashboardStats.hostname?.total || 0).toLocaleString() %>
+                  |
+                  <strong
+                    >SHA256:</strong
+                  >
+                  <%= (dashboardStats.sha256?.total || 0).toLocaleString() %> |
+                  <strong>MD5:</strong>
+                  <%= (dashboardStats.md5?.total || 0).toLocaleString() %> <% }
+                  else { %> Loading threat feeds... <% } %>
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% } else { %>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="/">
+          <i class="bi bi-shield-check text-primary me-2"></i>Threat Intel
+        </a>
+        <div class="col-lg-6 col-md-8">
+          <form action="/scan" method="POST" id="scanFormSidebar" class="w-100">
+            <div class="input-group">
+              <input
+                type="text"
+                name="indicator"
+                id="indicatorInputSidebar"
+                class="form-control"
+                placeholder="Scan another indicator..."
+                value="<%= scanResult.indicator %>"
+                required
+              />
+              <button class="btn btn-primary" type="submit">
+                <i class="bi bi-search"></i>
+              </button>
+            </div>
+            <div
+              id="validationErrorSidebar"
+              class="text-danger mt-2 small d-none"
+            ></div>
+          </form>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-5">
+      <div class="col-lg-10 mx-auto">
+        <div class="mb-4 result-animation">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <h4 class="mb-1">Scan Results</h4>
+              <p class="text-muted mb-0">
+                Indicator:
+                <code class="text-dark"><%= scanResult.indicator %></code>
+              </p>
+            </div>
+            <div>
+              <button class="btn btn-outline-secondary btn-sm me-2">
+                <i class="bi bi-download me-1"></i> Export
+              </button>
+              <button class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-share me-1"></i> Share
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="accordion shadow-lg rounded-4 result-animation"
+          id="scanResultAccordion"
+        >
+          <div class="accordion-item rounded-4 border-0">
+            <h2 class="accordion-header" id="headingOne">
+              <button
+                class="accordion-button fs-5 fw-bold p-4"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseOne"
+                aria-expanded="true"
+                aria-controls="collapseOne"
+              >
+                <i class="bi bi-file-earmark-text me-3"></i>
+                Detailed Report
+              </button>
+            </h2>
+            <div
+              id="collapseOne"
+              class="accordion-collapse collapse show"
+              aria-labelledby="headingOne"
+              data-bs-parent="#scanResultAccordion"
+            >
+              <div class="accordion-body p-4">
+                <% if (scanResult.source === 'MISP Database') { %>
+                <div
+                  class="alert alert-danger d-flex align-items-center mb-4"
+                  role="alert"
+                >
+                  <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                  <div>
+                    <h5 class="alert-heading mb-1">
+                      Threat Detected in MISP Database
+                    </h5>
+                    <p class="mb-0">
+                      This indicator has been flagged as malicious in our
+                      threat intelligence feeds.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="row g-3">
+                  <% scanResult.data.forEach((attr, index) => { %>
+                  <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                      <div
+                        class="card-header bg-white border-bottom-0 pt-3 pb-0"
+                      >
+                        <div
+                          class="d-flex align-items-center justify-content-between"
+                        >
+                          <h6 class="mb-0">
+                            <span class="badge bg-danger me-2"
+                              ><i class="bi bi-bookmark-fill me-1"></i>Event #<%=
+                              attr.event_id %></span
+                            >
+                            <%= attr.Event.Orgc.name %>
+                          </h6>
+                          <small class="text-muted">
+                            <i class="bi bi-calendar3 me-1"></i>
+                            <%= new Date(attr.timestamp *
+                            1000).toLocaleString() %>
+                          </small>
+                        </div>
+                      </div>
+                      <div class="card-body">
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <dl class="row mb-0">
+                              <dt class="col-sm-4 text-muted small">
+                                <i class="bi bi-tag-fill me-1"></i>Category
+                              </dt>
+                              <dd class="col-sm-8"><%= attr.category %></dd>
+
+                              <dt class="col-sm-4 text-muted small">
+                                <i class="bi bi-box-seam me-1"></i>Type
+                              </dt>
+                              <dd class="col-sm-8"><%= attr.type %></dd>
+
+                              <dt class="col-sm-4 text-muted small">
+                                <i class="bi bi-info-circle-fill me-1"></i>Event
+                                Info
+                              </dt>
+                              <dd class="col-sm-8"><%= attr.Event.info %></dd>
+                            </dl>
+                          </div>
+                          <div class="col-md-6">
+                            <% if(attr.comment) { %>
+                            <div class="mb-3">
+                              <small class="text-muted d-block mb-1"
+                                ><i class="bi bi-chat-left-text-fill me-1"></i
+                                >Comment</small
+                              >
+                              <p class="mb-0 small"><%= attr.comment %></p>
                             </div>
-                            <div
-                              id="validationError"
-                              class="text-danger text-start mt-2"
-                              style="display: none"
-                            ></div>
-                          </form>
+                            <% } %> <% if(attr.Tag && attr.Tag.length > 0) { %>
+                            <div>
+                              <small class="text-muted d-block mb-2"
+                                ><i class="bi bi-tags-fill me-1"></i>Tags</small
+                              >
+                              <div class="d-flex flex-wrap gap-1">
+                                <% attr.Tag.forEach(tag => { %>
+                                <span
+                                  class="badge bg-primary-subtle text-primary small"
+                                  ><%= tag.name %></span
+                                >
+                                <% }) %>
+                              </div>
+                            </div>
+                            <% } %>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
+                  <% }) %>
+                </div>
 
-                  <div class="summary-stats mt-4">
-                     <p>
-                        <i class="bi bi-database me-2"></i>
-                        <strong>Threat Feeds:</strong>
-                        <% if (dashboardStats && dashboardStats.ip) { %>
-                           <%= dashboardStats.ip.total.toLocaleString() %> IPs |
-                        <% } %>
-                        <% if (dashboardStats && dashboardStats.sha256) { %>
-                           <%= dashboardStats.sha256.total.toLocaleString() %> SHA256 |
-                        <% } %>
-                        <% if (dashboardStats && dashboardStats.md5) { %>
-                           <%= dashboardStats.md5.total.toLocaleString() %> MD5 |
-                        <% } %>
-                        <% if (dashboardStats && dashboardStats.hostname) { %>
-                           <%= dashboardStats.hostname.total.toLocaleString() %> Hostnames |
-                        <% } %>
-                        <% if (dashboardStats && dashboardStats.domain) { %>
-                           <%= dashboardStats.domain.total.toLocaleString() %> Domains
-                        <% } %>
-                     </p>
+                <% } else if (scanResult.source === 'Local Threat Feed') { %>
+                <div
+                  class="alert alert-warning d-flex align-items-center mb-4"
+                  role="alert"
+                >
+                  <i class="bi bi-exclamation-triangle fs-4 me-3"></i>
+                  <div>
+                    <h5 class="alert-heading mb-1">
+                      Threat Detected in Local Feeds
+                    </h5>
+                    <p class="mb-0">
+                      This indicator was found in local threat intelligence
+                      database.
+                    </p>
                   </div>
                 </div>
+
+                <div class="card border-0 shadow-sm">
+                  <div class="card-body">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <dl class="row mb-0">
+                          <dt class="col-sm-4 text-muted small">
+                            <i class="bi bi-person-fill me-1"></i>Indicator
+                          </dt>
+                          <dd class="col-sm-8">
+                            <code><%= scanResult.data.indicator %></code>
+                          </dd>
+
+                          <dt class="col-sm-4 text-muted small">
+                            <i class="bi bi-box-seam me-1"></i>Type
+                          </dt>
+                          <dd class="col-sm-8"><%= scanResult.data.type %></dd>
+                        </dl>
+                      </div>
+                      <div class="col-md-6">
+                        <dl class="row mb-0">
+                          <dt class="col-sm-4 text-muted small">
+                            <i class="bi bi-calendar-check me-1"></i>First Seen
+                          </dt>
+                          <dd class="col-sm-8">
+                            <%= new
+                            Date(scanResult.data.firstSeen).toLocaleString() %>
+                          </dd>
+
+                          <dt class="col-sm-4 text-muted small">
+                            <i class="bi bi-calendar-plus me-1"></i>Last
+                            Updated
+                          </dt>
+                          <dd class="col-sm-8">
+                            <%= new
+                            Date(scanResult.data.lastUpdated).toLocaleString()
+                            %>
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <% } else if (scanResult.source === 'Invalid') { %>
+                <div
+                  class="alert alert-warning d-flex align-items-center"
+                  role="alert"
+                >
+                  <i class="bi bi-exclamation-circle fs-4 me-3"></i>
+                  <div>
+                    <h5 class="alert-heading mb-1">
+                      Invalid Indicator Format
+                    </h5>
+                    <p class="mb-0"><%= scanResult.data.message %></p>
+                  </div>
+                </div>
+
+                <% } else { %>
+                <div
+                  class="alert alert-success d-flex align-items-center"
+                  role="alert"
+                >
+                  <i class="bi bi-check-circle-fill fs-4 me-3"></i>
+                  <div>
+                    <h5 class="alert-heading mb-1">No Threats Detected</h5>
+                    <p class="mb-0">
+                      The indicator <code><%= scanResult.indicator %></code> was
+                      not found in any threat intelligence databases.
+                    </p>
+                  </div>
+                </div>
+                <% } %>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+    <% } %>
 
-    <div class="container result-container">
-      <div id="loader" class="text-center" style="display: none">
-        <div class="spinner-border text-primary" role="status">
+    <div
+      id="loader"
+      class="position-fixed top-0 start-0 w-100 h-100 d-none"
+      style="background: rgba(255, 255, 255, 0.9); z-index: 9999"
+    >
+      <div
+        class="d-flex flex-column justify-content-center align-items-center h-100"
+      >
+        <div
+          class="spinner-border text-primary mb-3"
+          style="width: 3rem; height: 3rem"
+          role="status"
+        >
           <span class="visually-hidden">Loading...</span>
         </div>
-        <p class="mt-3 text-muted">Analyzing threat intelligence databases...</p>
+        <p class="text-muted">Analyzing threat intelligence databases...</p>
       </div>
-      
-      <% if (scanResult) { %>
-      <div class="accordion" id="scanResultAccordion">
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="headingOne">
-            <button
-              class="accordion-button"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#collapseOne"
-              aria-expanded="true"
-              aria-controls="collapseOne"
-            >
-              <i class="bi bi-search me-3"></i>
-              Scan Result for <code><%= scanResult.indicator %></code>
-            </button>
-          </h2>
-          <div
-            id="collapseOne"
-            class="accordion-collapse collapse show"
-            aria-labelledby="headingOne"
-            data-bs-parent="#scanResultAccordion"
-          >
-            <div class="accordion-body">
-              <% if (scanResult.source === 'MISP Database') { %>
-              <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle-fill me-3"></i>
-                <strong>Threat Detected in MISP Database</strong>
-                <p class="mb-0 mt-2">This indicator has been flagged as malicious in our threat intelligence feeds.</p>
-              </div>
-              
-              <% scanResult.data.forEach((attr, index) => { %>
-              <div class="misp-attribute-card">
-                <div class="row g-4">
-                  <div class="col-md-6">
-                    <div class="info-item">
-                      <p>
-                        <strong><i class="bi bi-tag-fill text-primary"></i>Category:</strong>
-                        <%= attr.category %>
-                      </p>
-                      <p>
-                        <strong><i class="bi bi-box-seam text-primary"></i>Type:</strong>
-                        <%= attr.type %>
-                      </p>
-                      <p>
-                        <strong><i class="bi bi-calendar-event text-primary"></i>Timestamp:</strong>
-                        <%= new Date(attr.timestamp * 1000).toLocaleString() %>
-                      </p>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="info-item">
-                      <p>
-                        <strong><i class="bi bi-hash text-primary"></i>Event ID:</strong>
-                        <span class="badge bg-secondary ms-2">
-                          <%= attr.event_id %>
-                        </span>
-                      </p>
-                      <p>
-                        <strong><i class="bi bi-info-circle-fill text-primary"></i>Event Info:</strong>
-                        <%= attr.Event.info %>
-                      </p>
-                      <p>
-                        <strong><i class="bi bi-building text-primary"></i>Event Org:</strong>
-                        <%= attr.Event.Orgc.name %>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <% if(attr.comment) { %>
-                <div class="mt-3 pt-3 border-top">
-                  <p>
-                    <strong><i class="bi bi-chat-left-text-fill text-primary"></i>Comment:</strong>
-                    <%= attr.comment %>
-                  </p>
-                </div>
-                <% } %>
-                
-                <% if(attr.Tag && attr.Tag.length > 0) { %>
-                <div class="mt-3 pt-3 border-top">
-                  <p class="mb-2">
-                    <strong><i class="bi bi-tags-fill text-primary"></i>Tags:</strong>
-                  </p>
-                  <div class="tag-container">
-                    <% attr.Tag.forEach(tag => { %>
-                    <span class="badge bg-primary-subtle text-primary-emphasis">
-                      <%= tag.name %>
-                    </span>
-                    <% }) %>
-                  </div>
-                </div>
-                <% } %>
-              </div>
-              <% }) %>
-              
-              <% } else if (scanResult.source === 'Local Threat Feed') { %>
-              <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle-fill me-3"></i>
-                <strong>Threat Detected in Local Feeds</strong>
-              </div>
-              <div class="threat-feed-details">
-                <ul class="list-group list-group-flush">
-                  <% for(const key in scanResult.data) { %>
-                    <% if (key !== '_id' && key !== '__v') { %>
-                      <li class="list-group-item">
-                        <strong><i class="bi bi-arrow-right-short text-primary me-2"></i><%= key.charAt(0).toUpperCase() + key.slice(1) %>:</strong>
-                        <% if (['firstSeen', 'lastUpdated', 'lastMispScan', 'createdAt', 'updatedAt'].includes(key)) { %>
-                          <%= new Date(scanResult.data[key]).toLocaleString() %>
-                        <% } else if (Array.isArray(scanResult.data[key])) { %>
-                          <%= scanResult.data[key].join(', ') %>
-                        <% } else { %>
-                          <%= scanResult.data[key] %>
-                        <% } %>
-                      </li>
-                    <% } %>
-                  <% } %>
-                </ul>
-              </div>
-              
-              <% } else if (scanResult.source === 'Invalid') { %>
-              <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle-fill me-3"></i>
-                <strong>Invalid Indicator Format</strong>
-              </div>
-              <p class="text-muted mb-0"><%= scanResult.data.message %></p>
-              
-              <% } else { %>
-              <div class="alert alert-success">
-                <i class="bi bi-shield-check me-3"></i>
-                <strong>No Threat Found</strong>
-                <p class="mb-0 mt-2">
-                  The indicator <code><%= scanResult.indicator %></code> was not found in any of our threat databases.
-                </p>
-              </div>
-              <% } %>
-            </div>
-          </div>
-        </div>
-      </div>
-      <script>
-        document.addEventListener("DOMContentLoaded", () => {
-          document
-            .getElementById("scanResultAccordion")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-      </script>
-      <% } %>
     </div>
 
     <script>
-      const scanForm = document.getElementById("scanForm");
-      const indicatorInput = document.getElementById("indicatorInput");
-      const validationError = document.getElementById("validationError");
-      const loader = document.getElementById("loader");
-
+      // Validation function
       function isValidIndicator(indicator) {
         const ipRegex =
           /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
@@ -573,38 +454,87 @@
         );
       }
 
-      scanForm.addEventListener("submit", function (event) {
-        const indicatorValue = indicatorInput.value.trim();
+      // Setup form validation for main form
+      const scanForm = document.getElementById("scanForm");
+      if (scanForm) {
+        const indicatorInput = document.getElementById("indicatorInput");
+        const validationError = document.getElementById("validationError");
+        const loader = document.getElementById("loader");
 
-        if (indicatorValue && !isValidIndicator(indicatorValue)) {
-          event.preventDefault();
+        scanForm.addEventListener("submit", function (event) {
+          const indicatorValue = indicatorInput.value.trim();
 
-          validationError.innerHTML = `
-            <i class="bi bi-exclamation-circle me-2"></i>
-            Invalid format. Please use a valid IP, Domain, SHA256, or MD5 hash.
-          `;
-          validationError.style.display = "block";
-          indicatorInput.classList.add("is-invalid");
-
-          loader.style.display = "none";
-        } else {
-          validationError.style.display = "none";
-          indicatorInput.classList.remove("is-invalid");
-
-          if (indicatorValue) {
-            loader.style.display = "block";
+          if (indicatorValue && !isValidIndicator(indicatorValue)) {
+            event.preventDefault();
+            validationError.innerHTML =
+              '<i class="bi bi-exclamation-circle me-1"></i>Invalid format. Please use a valid IP, Domain, SHA256, or MD5 hash.';
+            validationError.classList.remove("d-none");
+            indicatorInput.classList.add("is-invalid");
+          } else {
+            validationError.classList.add("d-none");
+            indicatorInput.classList.remove("is-invalid");
+            if (indicatorValue) {
+              loader.classList.remove("d-none");
+            }
           }
-        }
-      });
+        });
 
-      // Enhanced input experience
-      indicatorInput.addEventListener("input", function() {
-        if (this.classList.contains("is-invalid")) {
-          this.classList.remove("is-invalid");
-          validationError.style.display = "none";
-        }
-      });
+        indicatorInput.addEventListener("input", function () {
+          if (this.classList.contains("is-invalid")) {
+            this.classList.remove("is-invalid");
+            validationError.classList.add("d-none");
+          }
+        });
+
+        // Example badges click handler
+        document
+          .querySelectorAll('.badge[style="cursor: pointer"]')
+          .forEach((badge) => {
+            badge.addEventListener("click", function () {
+              indicatorInput.value = this.textContent;
+              indicatorInput.focus();
+            });
+          });
+      }
+
+      // Setup form validation for sidebar form
+      const scanFormSidebar = document.getElementById("scanFormSidebar");
+      if (scanFormSidebar) {
+        const indicatorInputSidebar = document.getElementById(
+          "indicatorInputSidebar"
+        );
+        const validationErrorSidebar = document.getElementById(
+          "validationErrorSidebar"
+        );
+        const loader = document.getElementById("loader");
+
+        scanFormSidebar.addEventListener("submit", function (event) {
+          const indicatorValue = indicatorInputSidebar.value.trim();
+
+          if (indicatorValue && !isValidIndicator(indicatorValue)) {
+            event.preventDefault();
+            validationErrorSidebar.innerHTML =
+              '<i class="bi bi-exclamation-circle me-1"></i>Invalid format';
+            validationErrorSidebar.classList.remove("d-none");
+            indicatorInputSidebar.classList.add("is-invalid");
+          } else {
+            validationErrorSidebar.classList.add("d-none");
+            indicatorInputSidebar.classList.remove("is-invalid");
+            if (indicatorValue) {
+              loader.classList.remove("d-none");
+            }
+          }
+        });
+
+        indicatorInputSidebar.addEventListener("input", function () {
+          if (this.classList.contains("is-invalid")) {
+            this.classList.remove("is-invalid");
+            validationErrorSidebar.classList.add("d-none");
+          }
+        });
+      }
     </script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
