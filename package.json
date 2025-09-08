@@ -1,6 +1,6 @@
 {
   "name": "multi-source-threat-intelligence-app",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Multi-source threat intelligence monitoring application with automated MISP integration and on-demand scanning.",
   "main": "app.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "dotenv": "^16.3.1",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
-    "mongoose": "^7.5.0",
+    "mongodb": "^6.3.0",
     "node-cron": "^3.0.2"
   },
   "devDependencies": {
